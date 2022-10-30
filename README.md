@@ -6,19 +6,19 @@ Tasks expire after a predetermined amount of time. A task can be terminated(kill
 Concurrency is achieved using goroutines.
 
 # Routes
-## GET /create
+- GET /create
 Spawns a new task. The response from the api has a uuid which can be used as reference for performing various actions related to the spawned task.
 
-## GET /pause/{uuid}
+- GET /pause/{uuid}
 Pauses the execution of task referenced by the given uuid.
 
-## GET /resume/{uuid}
+- GET /resume/{uuid}
 Resumes the execution of a paused task referenced by given uuid.
 
-## GET /delete/{uuid}
+- GET /delete/{uuid}
 Kills the task gracefully and calls a function to perform proper rollback.
 
-# How to run
+# How to run?
 
 ```
 $ go build
