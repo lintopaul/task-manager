@@ -42,6 +42,7 @@ func responseWriter(w http.ResponseWriter, payload interface{}, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
+
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		log.Println("error: ", err)
 	}
@@ -61,20 +62,24 @@ type TaskHandler struct {
 func NewTaskHandler(l *log.Logger, wg *sync.WaitGroup) *TaskHandler {
 	workers := make(map[string](chan int))
 	states := make(map[string]int)
+
 	return &TaskHandler{l, wg, workers, states}
 }
 
 // CreateTask spawns a new task
 func (t *TaskHandler) CreateTask(w http.ResponseWriter, _ *http.Request) {
 	t.logger.Println("Endpoint: create")
+
 	rawUUID := uuid.New()
 	uuid := strings.ReplaceAll(rawUUID.String(), "-", "")
 	t.workers[uuid] = make(chan int, 1)
 	t.states[uuid] = start
+
 	go task(counter, uuid, taskCount, t)
 	t.workers[uuid] <- start
 	t.logger.Println("Task created. uuid:", uuid)
 	counter++
+
 	resp := Response{Success: true, UUID: uuid}
 	responseWriter(w, resp, http.StatusOK)
 }
@@ -85,8 +90,10 @@ func (t *TaskHandler) PauseTask(rw http.ResponseWriter, r *http.Request) {
 		if t.states[uuid] == pause {
 			resp := Response{Success: true, Message: "Already paused"}
 			responseWriter(rw, resp, http.StatusOK)
+
 			return
 		}
+
 		t.logger.Println("Endpoint: pause")
 		t.workers[uuid] <- pause
 		t.states[uuid] = pause
@@ -101,6 +108,7 @@ func (t *TaskHandler) ResumeTask(rw http.ResponseWriter, r *http.Request) {
 		if t.states[uuid] == start {
 			resp := Response{Success: true, Message: "Already runnning"}
 			responseWriter(rw, resp, http.StatusOK)
+
 			return
 		}
 
@@ -151,6 +159,7 @@ func (t *TaskHandler) MiddlewareCheckTask(next http.Handler) http.Handler {
 		if !ok {
 			err := Response{Success: false, Err: "task for given uuid does not exist"}
 			responseWriter(rw, err, http.StatusBadRequest)
+
 			return
 		}
 
@@ -172,6 +181,7 @@ func task(id int, uuid string, count int, t *TaskHandler) {
 			state := <-t.workers[uuid]
 			if state == pause {
 				t.logger.Println("uuid:", uuid, "status: paused")
+
 				for state == pause {
 					state = <-t.workers[uuid]
 				}
@@ -180,7 +190,9 @@ func task(id int, uuid string, count int, t *TaskHandler) {
 			if state == kill {
 				t.logger.Println("uuid:", uuid, "status: killed")
 				t.logger.Println("rollback initiated")
+
 				go rollBack(uuid, t)
+
 				return
 			}
 

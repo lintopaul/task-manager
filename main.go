@@ -22,7 +22,9 @@ const (
 
 func main() {
 	logger := log.New(os.Stdout, "task-manager-api ", log.LstdFlags)
+
 	var wg sync.WaitGroup
+
 	router := mux.NewRouter()
 
 	taskHandler := handlers.NewTaskHandler(logger, &wg)
